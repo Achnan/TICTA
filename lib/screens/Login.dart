@@ -1,5 +1,9 @@
-class LoginPage extends StatelessWidget {
-  const LoginPage({super.key});
+import 'package:flutter/material.dart';
+import 'SelectCourse.dart';
+
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +14,7 @@ class LoginPage extends StatelessWidget {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const MainScreen()),
+              MaterialPageRoute(builder: (_) => const SelectCourseScreen()),
             );
           },
           child: const Text("Mock Sign In"),

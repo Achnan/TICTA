@@ -1,30 +1,31 @@
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
 
-class SettingsScreen extends StatelessWidget {
-  const SettingsScreen({super.key});
+class NewsScreen extends StatelessWidget {
+  const NewsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('ตั้งค่า')),
+      appBar: AppBar(title: const Text('ข่าวสาร')),
       body: const Center(
         child: Text(
-          'ตั้งค่าโปรไฟล์ แอป และเสียง AI',
+          'อัปเดตข่าวสารจากทีมแพทย์และนักกายภาพ',
           style: TextStyle(fontSize: 18),
         ),
       ),
       bottomNavigationBar: TheraBottomNav(
-        currentIndex: 2,
+        currentIndex: 0,
         onTap: (index) {
           switch (index) {
             case 0:
-              Navigator.pushReplacementNamed(context, '/news');
+              // อยู่ที่หน้า News แล้ว
               break;
             case 1:
               Navigator.pushReplacementNamed(context, '/select-course');
               break;
             case 2:
+              Navigator.pushReplacementNamed(context, '/settings');
               break;
           }
         },
