@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'SelectCourse.dart';
-
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -8,17 +6,9 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Sign In")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (_) => const SelectCourseScreen()),
-            );
-          },
-          child: const Text("Mock Sign In"),
-        ),
+      appBar: AppBar(title: const Text('เข้าสู่ระบบ')),
+      body: const Center(
+        child: Text('หน้าเข้าสู่ระบบ (ยังไม่ทำ)'),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/course_event_service.dart';
 import '../widgets/navigation_bar.dart';
 
 class SelectCourseScreen extends StatefulWidget {
@@ -9,78 +10,56 @@ class SelectCourseScreen extends StatefulWidget {
 }
 
 class _SelectCourseScreenState extends State<SelectCourseScreen> {
-  final List<String> courseList = [
-    'Test Course 1',
-    'Test Course 2',
-    'Shoulder Stretch',
-    'Lower Back Recovery',
-  ];
+  int _navIndex = 1;
 
-  String? selectedCourse;
+  void _onNavTapped(int index) {
+    setState(() {
+      _navIndex = index;
+    });
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/news');
+        break;
+      case 1:
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/settings');
+        break;
+    }
+  }
+
+  final List<Map<String, dynamic>> courseList = CourseEventService.courseList;
+
+  void _startCourse(String courseName) {
+    Navigator.pushNamed(context, '/camera', arguments: courseName);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('เลือกคอร์ส')),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'เลือกท่าฝึกกายภาพจากรายการ',
-              style: TextStyle(fontSize: 18),
-            ),
-            const SizedBox(height: 20),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: "เลือกคอร์ส",
-                border: OutlineInputBorder(),
-              ),
-              value: selectedCourse,
-              items: courseList.map((course) {
-                return DropdownMenuItem(
-                  value: course,
-                  child: Text(course),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  selectedCourse = value;
-                });
-              },
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: selectedCourse == null
-                  ? null
-                  : () {
-                      Navigator.pushNamed(
-                        context,
-                        '/camera',
-                        arguments: selectedCourse,
-                      );
-                    },
-              child: const Text("เริ่มคอร์ส"),
-            ),
-          ],
-        ),
+      appBar: AppBar(
+        title: const Text('เลือกคอร์ส'),
+        backgroundColor: const Color(0xFF1F4E79),
       ),
-      bottomNavigationBar: TheraBottomNav(
-        currentIndex: 1,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/news');
-              break;
-            case 1:
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/settings');
-              break;
-          }
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: courseList.length,
+        itemBuilder: (context, index) {
+          final course = courseList[index];
+          return ExpansionTile(
+            title: Text(course['name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F4E79))),
+            children: List.generate(course['exercises'].length, (i) {
+              final ex = course['exercises'][i];
+              return ListTile(
+                title: Text(ex['title']),
+                subtitle: Text('${ex['desc']} - ${ex['reps']} (${ex['duration']})'),
+                onTap: () => _startCourse(course['name']),
+              );
+            }),
+          );
         },
       ),
+      bottomNavigationBar: TheraBottomNav(currentIndex: _navIndex, onTap: _onNavTapped),
     );
   }
 }
