@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/course_event_service.dart';
 import '../widgets/navigation_bar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:theraphy_flutter/main.dart'; // สำหรับ access plugin
+import 'package:theraphy_flutter/main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,17 +18,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDay;
   Set<DateTime> _highlightedDates = {};
   int _streak = 0;
+  int _points = 0;
 
   @override
   void initState() {
     super.initState();
     _highlightedDates = CourseEventService.getScheduledDates().toSet();
-    _loadStreak();
+    _loadStats();
   }
 
-  Future<void> _loadStreak() async {
+  Future<void> _loadStats() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _streak = prefs.getInt('streak') ?? 0);
+    setState(() {
+      _streak = prefs.getInt('streak') ?? 0;
+      _points = prefs.getInt('points') ?? 0;
+    });
   }
 
   Future<void> _incrementStreak() async {
@@ -47,6 +51,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Navigator.pushReplacementNamed(context, '/select-course');
         break;
     }
+  }
+
+  void _showPointsPopup() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('แต้มสะสม'),
+        content: Text('🎯 คุณมี $_points แต้ม'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showScheduleDialog(DateTime selectedDay) async {
@@ -115,7 +135,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('TheraPhy')),
+      appBar: AppBar(
+        title: const Text('TheraPhy'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.stars),
+            tooltip: 'แต้มสะสม',
+            onPressed: _showPointsPopup,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           const SizedBox(height: 16),
@@ -197,7 +226,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: TheraBottomNav(currentIndex: _navIndex, onTap: _onNavTapped),
+      bottomNavigationBar: TheraBottomNav(
+        currentIndex: _navIndex,
+        onTap: _onNavTapped,
+        labels: const ['ข่าวสาร', 'เลือกคอร์ส', 'ผู้ใช้งาน'], // 👈 เพิ่ม label ใหม่
+      ),
     );
   }
 }

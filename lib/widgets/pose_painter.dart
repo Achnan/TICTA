@@ -5,11 +5,22 @@ class PosePainter extends CustomPainter {
   final List<PoseLandmark> landmarks;
   final double imageWidth;
   final double imageHeight;
+  final bool isFrontCamera;
 
-  PosePainter(this.landmarks, this.imageWidth, this.imageHeight);
+  PosePainter(
+    this.landmarks,
+    this.imageWidth,
+    this.imageHeight, {
+    this.isFrontCamera = false,
+  });
 
-  factory PosePainter.fromLandmarks(List<PoseLandmark> landmarks, double w, double h) {
-    return PosePainter(landmarks, w, h);
+  factory PosePainter.fromLandmarks(
+    List<PoseLandmark> landmarks,
+    double w,
+    double h, {
+    bool isFrontCamera = false,
+  }) {
+    return PosePainter(landmarks, w, h, isFrontCamera: isFrontCamera);
   }
 
   final List<List<PoseLandmarkType>> connections = [
@@ -31,20 +42,23 @@ class PosePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final scaleX = size.width / imageWidth;
     final scaleY = size.height / imageHeight;
-    final mirrorX = (double x) => size.width - (x * scaleX);
+
+    Offset transform(PoseLandmark lm) {
+      final x = isFrontCamera ? (imageWidth - lm.x) * scaleX : lm.x * scaleX;
+      final y = lm.y * scaleY;
+      return Offset(x, y);
+    }
 
     final pointPaint = Paint()
       ..color = Colors.pink
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 5.0;
+      ..style = PaintingStyle.fill;
 
     final linePaint = Paint()
       ..color = Colors.cyan
       ..strokeWidth = 3.0;
 
-    final Map<PoseLandmarkType, Offset> points = {
-      for (var lm in landmarks)
-        lm.type: Offset(mirrorX(lm.x), lm.y * scaleY),
+    final points = {
+      for (var lm in landmarks) lm.type: transform(lm),
     };
 
     for (final connection in connections) {
@@ -55,8 +69,8 @@ class PosePainter extends CustomPainter {
       }
     }
 
-    for (final point in points.values) {
-      canvas.drawCircle(point, 4.0, pointPaint);
+    for (final p in points.values) {
+      canvas.drawCircle(p, 4.0, pointPaint);
     }
   }
 

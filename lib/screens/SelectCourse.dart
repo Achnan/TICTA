@@ -30,8 +30,8 @@ class _SelectCourseScreenState extends State<SelectCourseScreen> {
 
   final List<Map<String, dynamic>> courseList = CourseEventService.courseList;
 
-  void _startCourse(String courseName) {
-    Navigator.pushNamed(context, '/camera', arguments: courseName);
+  void _startCourse(String exerciseName) {
+    Navigator.pushNamed(context, '/camera', arguments: exerciseName);
   }
 
   @override
@@ -47,19 +47,29 @@ class _SelectCourseScreenState extends State<SelectCourseScreen> {
         itemBuilder: (context, index) {
           final course = courseList[index];
           return ExpansionTile(
-            title: Text(course['name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1F4E79))),
+            title: Text(
+              course['name'],
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F4E79),
+              ),
+            ),
             children: List.generate(course['exercises'].length, (i) {
               final ex = course['exercises'][i];
               return ListTile(
                 title: Text(ex['title']),
                 subtitle: Text('${ex['desc']} - ${ex['reps']} (${ex['duration']})'),
-                onTap: () => _startCourse(course['name']),
+                onTap: () => _startCourse(ex['title']), // ✅ ส่งชื่อท่าฝึกไปแทนชื่อคอร์ส
               );
             }),
           );
         },
       ),
-      bottomNavigationBar: TheraBottomNav(currentIndex: _navIndex, onTap: _onNavTapped),
+      bottomNavigationBar: TheraBottomNav(
+        currentIndex: _navIndex,
+        onTap: _onNavTapped,
+      ),
     );
   }
 }

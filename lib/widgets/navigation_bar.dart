@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 class TheraBottomNav extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
+  final List<String>? labels; // ✅ ปรับให้รองรับ labels แบบกำหนดเองได้
 
   const TheraBottomNav({
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.labels,
   });
 
   static const Color bgColor = Color(0xFF205781);
@@ -17,6 +19,8 @@ class TheraBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final usedLabels = labels ?? ['ข่าวสาร', 'เลือกคอร์ส', 'ผู้ใช้งาน'];
+
     return BottomNavigationBar(
       backgroundColor: bgColor,
       currentIndex: currentIndex,
@@ -29,15 +33,15 @@ class TheraBottomNav extends StatelessWidget {
       items: [
         BottomNavigationBarItem(
           icon: _buildIcon(Icons.article, 0),
-          label: 'ข่าวสาร',
+          label: usedLabels[0],
         ),
         BottomNavigationBarItem(
           icon: _buildIcon(Icons.fitness_center, 1),
-          label: 'เลือกคอร์ส',
+          label: usedLabels[1],
         ),
         BottomNavigationBarItem(
-          icon: _buildIcon(Icons.settings, 2),
-          label: 'ตั้งค่า',
+          icon: _buildIcon(Icons.person, 2),
+          label: usedLabels[2],
         ),
       ],
     );

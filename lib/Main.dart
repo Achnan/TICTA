@@ -13,11 +13,9 @@ import 'screens/SettingsScreen.dart';
 
 List<CameraDescription> cameras = [];
 
-// ✅ Global notification plugin
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
-// ✅ Request notification permission
 Future<void> requestNotificationPermission() async {
   if (await Permission.notification.isDenied ||
       await Permission.notification.isPermanentlyDenied) {
@@ -27,15 +25,11 @@ Future<void> requestNotificationPermission() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // ✅ Set timezone
   tz.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('Asia/Bangkok'));
 
-  // ✅ Request permission (Android 13+)
   await requestNotificationPermission();
 
-  // ✅ Initialize notification
   const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
   const initSettings = InitializationSettings(android: androidInit);
   await flutterLocalNotificationsPlugin.initialize(
@@ -45,7 +39,6 @@ Future<void> main() async {
     },
   );
 
-  // ✅ Initialize camera
   cameras = await availableCameras();
 
   runApp(const TheraPhyApp());
@@ -68,12 +61,28 @@ class TheraPhyApp extends StatelessWidget {
         ),
       ),
       initialRoute: '/select-course',
-      routes: {
-        '/login': (context) => const LoginScreen(),
-        '/news': (context) => const NewsScreen(),
-        '/select-course': (context) => const SelectCourseScreen(),
-        '/camera': (context) => const CameraPage(),
-        '/settings': (context) => const SettingsScreen(),
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/login':
+            return MaterialPageRoute(builder: (_) => const LoginScreen());
+          case '/news':
+            return MaterialPageRoute(builder: (_) => const NewsScreen());
+          case '/select-course':
+            return MaterialPageRoute(builder: (_) => const SelectCourseScreen());
+          case '/settings':
+            return MaterialPageRoute(builder: (_) => const SettingsScreen());
+          case '/camera':
+            final courseName = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (_) => CameraPage(courseName: courseName),
+            );
+          default:
+            return MaterialPageRoute(
+              builder: (_) => const Scaffold(
+                body: Center(child: Text('ไม่พบเส้นทางที่เรียก')),
+              ),
+            );
+        }
       },
     );
   }
