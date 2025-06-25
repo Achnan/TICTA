@@ -5,6 +5,8 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 class ArmExtensionForwardEvaluator extends PoseEvaluator {
   @override
+  bool get requiresSideView => true;
+  @override
   String get name => 'Arm Extension Forward';
 
   @override

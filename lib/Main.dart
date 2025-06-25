@@ -4,6 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'screens/NewsScreen.dart';
 import 'screens/CameraPage.dart';
@@ -25,6 +26,9 @@ Future<void> requestNotificationPermission() async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await initializeDateFormatting('th', null);
+
   tz.initializeTimeZones();
   tz.setLocalLocation(tz.getLocation('Asia/Bangkok'));
 
@@ -60,6 +64,23 @@ class TheraPhyApp extends StatelessWidget {
           foregroundColor: Colors.white,
         ),
       ),
+      builder: (context, child) {
+        return WillPopScope(
+          onWillPop: () async {
+          final navigator = Navigator.of(context);
+          if (!navigator.canPop()) {
+            navigator.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const SelectCourseScreen()),
+              (route) => false,
+            );
+            return false;
+          }
+          return true;
+        },
+
+          child: child!,
+        );
+      },
       initialRoute: '/select-course',
       onGenerateRoute: (settings) {
         switch (settings.name) {

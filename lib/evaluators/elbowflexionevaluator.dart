@@ -5,6 +5,8 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 class ElbowFlexionEvaluator extends PoseEvaluator {
   @override
+  bool get requiresSideView => true;
+  @override
   String get name => 'Elbow Flexion';
 
   @override

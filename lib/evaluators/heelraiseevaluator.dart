@@ -5,6 +5,8 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 class HeelRaiseEvaluator extends PoseEvaluator {
   @override
+  bool get requiresSideView => true;
+  @override
   String get name => 'Heel Raise';
 
   @override

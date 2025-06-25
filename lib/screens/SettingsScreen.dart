@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 import '../services/course_event_service.dart';
+import '../services/user_settings.dart';
+import '../widgets/thera_app_bar.dart';
 import '../widgets/navigation_bar.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:theraphy_flutter/main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
@@ -18,27 +20,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDay;
   Set<DateTime> _highlightedDates = {};
   int _streak = 0;
-  int _points = 0;
+  List<String> _badges = [];
+  List<String> _dailyCourses = [];
+  List<String> _scheduledCourses = [];
+  bool _showCalendar = false;
 
   @override
   void initState() {
     super.initState();
     _highlightedDates = CourseEventService.getScheduledDates().toSet();
+    _selectedDay = DateTime.now();
     _loadStats();
+    _loadCoursesForDay(_selectedDay!);
   }
 
   Future<void> _loadStats() async {
     final prefs = await SharedPreferences.getInstance();
+    await UserSettings.loadSettings();
     setState(() {
       _streak = prefs.getInt('streak') ?? 0;
-      _points = prefs.getInt('points') ?? 0;
+      _badges = prefs.getStringList('badges') ?? [];
     });
   }
 
-  Future<void> _incrementStreak() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() => _streak++);
-    await prefs.setInt('streak', _streak);
+  Future<void> _loadCoursesForDay(DateTime day) async {
+    final courses = await CourseEventService.getCoursesOn(day);
+    final scheduled = await CourseEventService.getScheduledCoursesOn(day);
+    setState(() {
+      _dailyCourses = courses;
+      _scheduledCourses = scheduled;
+    });
   }
 
   void _onNavTapped(int index) {
@@ -53,79 +64,245 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _showPointsPopup() {
-    showDialog(
+  Future<String?> _selectCourseDialog() async {
+    return showDialog<String>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('แต้มสะสม'),
-        content: Text('🎯 คุณมี $_points แต้ม'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ปิด'),
-          ),
-        ],
+      builder: (context) => SimpleDialog(
+        title: const Text('เลือกคอร์ส'),
+        children: CourseEventService.courseList
+            .map((c) => SimpleDialogOption(
+                  child: Text(c['name']),
+                  onPressed: () => Navigator.pop(context, c['name']),
+                ))
+            .toList(),
       ),
     );
   }
 
-  void _showScheduleDialog(DateTime selectedDay) async {
-    String? selectedCourse;
-    TimeOfDay? timeOfDay;
+  Future<TimeOfDay?> _selectTimeDialog() async {
+    return await showTimePicker(context: context, initialTime: TimeOfDay.now());
+  }
 
-    await showDialog(
+  void _showBadgesPopup() {
+    showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text("ตั้งแจ้งเตือน"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              items: CourseEventService.courseList.map<DropdownMenuItem<String>>((course) {
-                return DropdownMenuItem<String>(
-                  value: course['name'] as String,
-                  child: Text(course['name']),
-                );
-              }).toList(),
-              hint: const Text("เลือกคอร์ส"),
-              onChanged: (val) => selectedCourse = val,
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () async {
-                timeOfDay = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay.now(),
-                );
-              },
-              child: const Text("เลือกเวลา"),
-            )
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              if (selectedCourse != null && timeOfDay != null) {
-                final dateTime = DateTime(
-                  selectedDay.year,
-                  selectedDay.month,
-                  selectedDay.day,
-                  timeOfDay!.hour,
-                  timeOfDay!.minute,
-                );
-                await CourseEventService.scheduleCourseEvent(selectedCourse!, dateTime);
-                await _incrementStreak();
-                setState(() => _highlightedDates.add(dateTime));
+        title: const Text('🏅 ความสำเร็จ'),
+        content: _badges.isEmpty
+            ? const Text('คุณยังไม่มีเหรียญตรา')
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: _badges.map((b) => Text('• $b')).toList(),
+              ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('ปิด'))],
+      ),
+    );
+  }
 
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('ตั้งแจ้งเตือนคอร์ส "$selectedCourse" เวลา ${timeOfDay!.format(context)} สำเร็จ'),
-                  ));
-                }
-              }
+  Widget _buildWeekBar() {
+    final base = _selectedDay ?? DateTime.now();
+    final week = List.generate(7, (i) => base.subtract(Duration(days: base.weekday - 1 - i)));
+
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: week.length,
+        itemBuilder: (context, index) {
+          final day = week[index];
+          final isToday = isSameDay(day, DateTime.now());
+          final isSelected = isSameDay(day, _selectedDay);
+          final hasCourse = _highlightedDates.any((d) => isSameDay(d, day));
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedDay = day;
+                _focusedDay = day;
+              });
+              _loadCoursesForDay(day);
             },
-            child: const Text("ตกลง"),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: 65,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(colors: [Colors.orange.shade200, Colors.deepOrange.shade400])
+                    : null,
+                color: isToday && !isSelected ? Colors.orange.shade100 : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  if (isSelected || isToday)
+                    BoxShadow(color: Colors.orange.shade200, blurRadius: 6, offset: const Offset(0, 3))
+                ],
+                border: Border.all(
+                  color: isSelected ? Colors.deepOrange : Colors.grey.shade300,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(DateFormat.E().format(day), style: const TextStyle(fontSize: 14)),
+                  Text('${day.day}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  if (hasCourse)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: CircleAvatar(radius: 3, backgroundColor: Colors.green),
+                    )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCalendar() {
+    return TableCalendar(
+      firstDay: DateTime.utc(2025, 1, 1),
+      lastDay: DateTime.utc(2026, 1, 1),
+      focusedDay: _focusedDay,
+      selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+      onDaySelected: (selected, focused) async {
+        setState(() {
+          _selectedDay = selected;
+          _focusedDay = focused;
+        });
+        await _loadCoursesForDay(selected);
+      },
+      calendarFormat: CalendarFormat.month,
+      headerStyle: const HeaderStyle(titleCentered: true, formatButtonVisible: false),
+      calendarStyle: CalendarStyle(
+        todayDecoration: BoxDecoration(
+          color: Colors.orange.shade300,
+          shape: BoxShape.circle,
+        ),
+        selectedDecoration: BoxDecoration(
+          color: Colors.deepOrange,
+          shape: BoxShape.circle,
+        ),
+        weekendTextStyle: const TextStyle(color: Colors.redAccent),
+      ),
+      calendarBuilders: CalendarBuilders(
+        defaultBuilder: (context, day, _) {
+          final isMarked = _highlightedDates.any((d) => isSameDay(d, day));
+          return Container(
+            margin: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isMarked ? Colors.blue : null,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text('${day.day}', style: TextStyle(color: isMarked ? Colors.white : null)),
+            ),
+          );
+        },
+      ),
+      locale: 'th_TH',
+    );
+  }
+
+  Widget _buildDayCourseList() {
+    final d = _selectedDay ?? DateTime.now();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          child: Text(
+            isSameDay(d, DateTime.now()) ? 'วันนี้' : 'วันที่ ${d.day}',
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+        ..._scheduledCourses.map((e) {
+          final parts = e.split('|');
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            child: ListTile(
+              leading: Icon(Icons.schedule, color: Colors.orange.shade600),
+              title: Text(parts[0]),
+              subtitle: Text('กำหนดเวลา: ${parts[1]}'),
+              tileColor: Colors.orange.shade50,
+            ),
+          );
+        }),
+        ..._dailyCourses.map((c) {
+          final parts = c.split('|');
+          final name = parts[0];
+          final time = parts.length > 1 ? parts[1] : '';
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            child: ListTile(
+              leading: const Icon(Icons.check_circle, color: Colors.green),
+              title: Text(name),
+              subtitle: time.isNotEmpty ? Text('เวลา: $time') : null,
+            ),
+          );
+        }),
+        if (_showCalendar)
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.add),
+              label: const Text('เพิ่มกิจกรรม'),
+              onPressed: () async {
+                final selectedCourse = await _selectCourseDialog();
+                if (selectedCourse != null) {
+                  final selectedTime = await _selectTimeDialog();
+                  if (selectedTime != null) {
+                    final scheduled = DateTime(
+                      d.year,
+                      d.month,
+                      d.day,
+                      selectedTime.hour,
+                      selectedTime.minute,
+                    );
+                    if (scheduled.isBefore(DateTime.now())) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('⏰ กรุณาเลือกเวลาที่อยู่ในอนาคต')));
+                      return;
+                    }
+                    await CourseEventService.scheduleCourseEvent(selectedCourse, scheduled);
+                    await CourseEventService.logCourse(selectedCourse, scheduled);
+                    setState(() => _highlightedDates.add(scheduled));
+                    await _loadCoursesForDay(d);
+                  }
+                }
+              },
+            ),
+          )
+      ],
+    );
+  }
+
+  Widget _buildVoiceSettings() {
+    return Card(
+      margin: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          ListTile(
+            leading: Icon(Icons.hearing, color: Colors.deepOrange),
+            title: const Text("การตั้งค่าเสียง", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          SwitchListTile(
+            title: const Text("เปิดเสียงคำแนะนำ"),
+            value: UserSettings.enableTechnicalFeedback,
+            onChanged: (val) async {
+              setState(() => UserSettings.enableTechnicalFeedback = val);
+              await UserSettings.saveSettings();
+            },
+          ),
+          SwitchListTile(
+            title: const Text("เปิดเสียงให้กำลังใจ"),
+            value: UserSettings.enableEncouragement,
+            onChanged: (val) async {
+              setState(() => UserSettings.enableEncouragement = val);
+              await UserSettings.saveSettings();
+            },
           ),
         ],
       ),
@@ -135,101 +312,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('TheraPhy'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.stars),
-            tooltip: 'แต้มสะสม',
-            onPressed: _showPointsPopup,
-          ),
-        ],
+      appBar: TheraAppBar(
+        title: 'TheraPhy',
+        actions: [IconButton(icon: const Icon(Icons.emoji_events), onPressed: _showBadgesPopup)],
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          const Text(
-            'ผู้ใช้งาน',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1F4E79)),
-          ),
-          const SizedBox(height: 4),
-          Text('🔥 Streak: $_streak วัน', style: const TextStyle(fontSize: 18, color: Colors.orange)),
-          const Divider(thickness: 1),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Column(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Text('ผู้ใช้งาน', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text('🔥 Streak: $_streak วัน', style: const TextStyle(fontSize: 18, color: Colors.orange)),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                ElevatedButton(
-                  onPressed: () async {
-                    await CourseEventService.testImmediateNotification();
-                  },
-                  child: const Text('ทดสอบแจ้งเตือนทันที'),
-                ),
-                const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    await flutterLocalNotificationsPlugin.cancelAll();
-                    setState(() => _highlightedDates.clear());
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('ยกเลิกการแจ้งเตือนทั้งหมดแล้ว')),
-                      );
-                    }
-                  },
-                  child: const Text('ยกเลิกการแจ้งเตือนทั้งหมด'),
+                const Text('กิจกรรมรายสัปดาห์', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                TextButton(
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    builder: (_) => Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _buildCalendar(),
+                    ),
+                  ).then((_) => setState(() => _showCalendar = true)),
+                  child: const Text('ปฏิทิน'),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            margin: const EdgeInsets.all(16),
-            child: TableCalendar(
-              firstDay: DateTime.utc(2025, 1, 1),
-              lastDay: DateTime.utc(2026, 1, 1),
-              focusedDay: _focusedDay,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selected, focused) {
-                setState(() {
-                  _selectedDay = selected;
-                  _focusedDay = focused;
-                });
-                _showScheduleDialog(selected);
-              },
-              availableCalendarFormats: const {
-                CalendarFormat.month: 'เดือน',
-              },
-              calendarFormat: CalendarFormat.month,
-              headerStyle: const HeaderStyle(
-                titleCentered: true,
-                formatButtonVisible: false,
-              ),
-              calendarBuilders: CalendarBuilders(
-                defaultBuilder: (context, day, _) {
-                  final isHighlighted = _highlightedDates.any((d) => isSameDay(d, day));
-                  if (isHighlighted) {
-                    return Container(
-                      margin: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text('${day.day}', style: const TextStyle(color: Colors.white)),
-                      ),
-                    );
-                  }
-                  return null;
-                },
-              ),
-            ),
-          ),
-        ],
+            _buildWeekBar(),
+            _buildDayCourseList(),
+            const SizedBox(height: 20),
+            _buildVoiceSettings(),
+          ],
+        ),
       ),
       bottomNavigationBar: TheraBottomNav(
         currentIndex: _navIndex,
         onTap: _onNavTapped,
-        labels: const ['ข่าวสาร', 'เลือกคอร์ส', 'ผู้ใช้งาน'], // 👈 เพิ่ม label ใหม่
+        labels: const ['ข่าวสาร', 'เลือกคอร์ส', 'ผู้ใช้งาน'],
       ),
     );
   }

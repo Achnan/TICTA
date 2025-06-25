@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/navigation_bar.dart';
+import '../widgets/thera_app_bar.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -31,11 +32,7 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('TheraPhy'),
-        actions: const [Icon(Icons.menu)],
-        backgroundColor: const Color(0xFF1F4E79),
-      ),
+      appBar: const TheraAppBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -51,7 +48,6 @@ class _NewsScreenState extends State<NewsScreen> {
           const Divider(thickness: 1),
           const SizedBox(height: 8),
 
-          // ✅ แก้ไขส่วนนี้
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Card(

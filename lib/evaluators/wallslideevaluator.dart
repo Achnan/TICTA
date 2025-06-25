@@ -5,6 +5,8 @@ import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 class WallSlideEvaluator extends PoseEvaluator {
   @override
+  bool get requiresSideView => true;
+  @override
   String get name => 'Wall Slide';
 
   @override
