@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -94,7 +95,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: _badges.map((b) => Text('• $b')).toList(),
               ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('ปิด'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ปิด'),
+          )
+        ],
       ),
     );
   }
@@ -177,14 +183,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       calendarFormat: CalendarFormat.month,
       headerStyle: const HeaderStyle(titleCentered: true, formatButtonVisible: false),
       calendarStyle: CalendarStyle(
-        todayDecoration: BoxDecoration(
-          color: Colors.orange.shade300,
-          shape: BoxShape.circle,
-        ),
-        selectedDecoration: BoxDecoration(
-          color: Colors.deepOrange,
-          shape: BoxShape.circle,
-        ),
+        todayDecoration: BoxDecoration(color: Colors.orange.shade300, shape: BoxShape.circle),
+        selectedDecoration: BoxDecoration(color: Colors.deepOrange, shape: BoxShape.circle),
         weekendTextStyle: const TextStyle(color: Colors.redAccent),
       ),
       calendarBuilders: CalendarBuilders(
@@ -223,7 +223,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: Icon(Icons.schedule, color: Colors.orange.shade600),
+              leading: const Icon(LucideIcons.clock, color: Color(0xFFE76F51)),
               title: Text(parts[0]),
               subtitle: Text('กำหนดเวลา: ${parts[1]}'),
               tileColor: Colors.orange.shade50,
@@ -237,7 +237,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return Card(
             margin: const EdgeInsets.symmetric(vertical: 6),
             child: ListTile(
-              leading: const Icon(Icons.check_circle, color: Colors.green),
+              leading: const Icon(LucideIcons.checkCircle2, color: Colors.green),
               title: Text(name),
               subtitle: time.isNotEmpty ? Text('เวลา: $time') : null,
             ),
@@ -247,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton.icon(
-              icon: const Icon(Icons.add),
+              icon: const Icon(LucideIcons.plusCircle),
               label: const Text('เพิ่มกิจกรรม'),
               onPressed: () async {
                 final selectedCourse = await _selectCourseDialog();
@@ -285,7 +285,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         children: [
           ListTile(
-            leading: Icon(Icons.hearing, color: Colors.deepOrange),
+            leading: const Icon(LucideIcons.headphones, color: Colors.deepOrange),
             title: const Text("การตั้งค่าเสียง", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
           SwitchListTile(
@@ -314,7 +314,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: TheraAppBar(
         title: 'TheraPhy',
-        actions: [IconButton(icon: const Icon(Icons.emoji_events), onPressed: _showBadgesPopup)],
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.award),
+            onPressed: _showBadgesPopup,
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
